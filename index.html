@@ -1,1 +1,209 @@
 <!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#19191d">
+<title>MEMORY — тренировка памяти</title>
+<style>
+:root{color-scheme:dark;--bg:#19191d;--panel:#222228;--cell:#2c2c33;--line:#3b3b45;--cyan:#08abc8;--cyan2:#71e4f4;--text:#eee9f5;--muted:#a7a3b1;--green:#20b98b;--red:#e05265}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#292832 0%,var(--bg) 55%);color:var(--text);font-family:Arial,sans-serif}
+.app{width:min(100%,720px);margin:auto;padding:12px 14px max(24px,env(safe-area-inset-bottom))}
+.header{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#ddd9e5;font:13px "Courier New",monospace}
+.track{height:3px;background:#4c4b54;margin-top:9px;overflow:hidden;border-radius:4px}.progress{height:100%;width:100%;background:linear-gradient(90deg,var(--cyan),#d3f6fb)}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:25px 10px 16px}
+.brand{font-size:clamp(42px,10vw,66px);font-weight:300;letter-spacing:-2px;line-height:1}.brand span{color:var(--cyan2)}
+.clock{width:clamp(88px,23vw,112px);height:clamp(88px,23vw,112px);border:1px solid #d8d4df;border-radius:50%;display:grid;place-items:center;flex:none;position:relative;background:radial-gradient(circle,#222228 60%,transparent 62%)}
+.clock:before{content:"";position:absolute;inset:-1px;border-radius:50%;background:conic-gradient(var(--cyan) var(--arc,0%),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px))}
+.clock-inner{position:relative;text-align:center;font:17px "Courier New",monospace}.clock-label{display:block;color:var(--muted);font:9px Arial;margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.stat{background:#222228;border:1px solid #34343d;border-radius:9px;padding:9px 10px;min-width:0}.stat-label{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.stat-value{font:19px "Courier New",monospace;color:var(--cyan2);white-space:nowrap}
+.board-wrap{display:flex;justify-content:center}.grid{display:grid;gap:3px;width:min(100%,490px,calc(100vw - 36px));aspect-ratio:1;padding:5px;background:#202025;border:1px solid #3a3a42;border-radius:10px;box-shadow:0 12px 35px #0003}
+.cell{border:0;border-radius:3px;padding:0;background:var(--cell);cursor:pointer;min-width:0;min-height:0;transition:none;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent}
+.cell:disabled{cursor:default}.cell.active{background:var(--cyan);box-shadow:0 0 10px #08abc877}.cell.correct{background:var(--green)}.cell.wrong{background:var(--red)}
+.status{min-height:42px;text-align:center;padding:12px 4px 3px;color:#d3cfdb;font-size:13px;line-height:1.35}.status.error{color:#ff9eaa}
+.controls{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:9px 0 16px}
+.btn{border:1px solid #555560;background:#292930;color:var(--text);border-radius:7px;padding:11px 14px;cursor:pointer;transition:background .08s,border-color .08s;touch-action:manipulation;min-height:42px}.btn.primary{background:#087e96;border-color:#13b7d4;color:white}.btn:disabled{opacity:.45;cursor:not-allowed}
+.settings{background:var(--panel);border:1px solid #393943;border-radius:11px;padding:13px;margin-top:7px}
+.settings summary{cursor:pointer;color:#e9e3f0;font-weight:600;list-style:none;display:flex;justify-content:space-between}.settings summary:after{content:"＋";color:var(--cyan2)}.settings[open] summary:after{content:"−"}
+.setting-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:15px}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#bdb9c6}
+input,select{width:100%;background:#17171c;color:#f0edf4;border:1px solid #4b4b55;border-radius:6px;padding:10px;font:14px Arial;min-height:40px}
+.help{font-size:11px;color:#9b97a5;line-height:1.45;margin:11px 0 0}
+.overlay{position:fixed;inset:0;background:#09090bc9;display:none;place-items:center;padding:18px;z-index:10}.dialog{width:min(100%,390px);background:#24242b;border:1px solid #555560;border-radius:14px;padding:23px;text-align:center}.dialog h2{font-weight:500;margin:0 0 8px}.dialog p{color:#bbb7c4;font-size:14px;line-height:1.5}.dialog-actions{display:flex;justify-content:center;margin-top:16px}
+@media(max-width:460px){.app{padding:10px 10px max(20px,env(safe-area-inset-bottom))}.hero{padding:22px 6px 14px}.stats{gap:5px}.stat{padding:8px 7px}.stat-value{font-size:17px}.grid{gap:2px;padding:4px}.setting-grid{gap:9px}}
+</style>
+</head>
+<body>
+<main class="app">
+ <div class="header"><span>MEMORY TRAINER</span><span>ОБЩЕЕ ВРЕМЯ: <b id="totalTime">05:00</b></span></div>
+ <div class="track"><div class="progress" id="progress"></div></div>
+ <section class="hero"><div class="brand">Mem<span>o</span>ry</div><div class="clock" id="clock"><div class="clock-inner"><span id="roundTime">—</span><span class="clock-label" id="clockLabel">раунд</span></div></div></section>
+ <section class="stats">
+  <div class="stat"><span class="stat-label">УРОВЕНЬ</span><span class="stat-value" id="level">1</span></div>
+  <div class="stat"><span class="stat-label">ОЧКИ</span><span class="stat-value" id="score">0</span></div>
+  <div class="stat"><span class="stat-label">РЕКОРД</span><span class="stat-value" id="best">0</span></div>
+  <div class="stat"><span class="stat-label">КЛЕТОК</span><span class="stat-value" id="count">—</span></div>
+ </section>
+ <div class="board-wrap"><div class="grid" id="grid" aria-label="Игровая сетка"></div></div>
+ <div class="status" id="message" aria-live="polite">Нажми «Начать игру» и запомни фигуры.</div>
+ <div class="controls">
+  <button class="btn primary" id="start">Начать игру</button><button class="btn" id="pause" disabled>Пауза</button><button class="btn" id="sound">Звук: выкл.</button>
+ </div>
+ <details class="settings">
+  <summary>Настройки игры</summary>
+  <div class="setting-grid">
+   <label>Строки сетки<input id="rows" type="number" min="3" max="12" value="8"></label>
+   <label>Столбцы сетки<input id="cols" type="number" min="3" max="12" value="8"></label>
+   <label>Общее время (мин.)<input id="minutes" type="number" min="1" max="30" value="5"></label>
+   <label>На решение (сек.)<input id="answerSeconds" type="number" min="5" max="10" value="7"></label>
+   <label>Показ фигуры (сек.)<input id="showSeconds" type="number" min="1" max="5" value="2"></label>
+   <label>Тип фигур<select id="shapeMode"><option value="mix">Очень разные фигуры</option><option value="random">Случайные узоры</option><option value="line">Линии</option><option value="square">Квадраты и прямоугольники</option><option value="zigzag">Зигзаги и лестницы</option><option value="arrow">Стрелки и ромбы</option><option value="spiral">Спирали</option></select></label>
+  </div>
+  <p class="help">При правильном ответе уровень растёт, фигуры усложняются и увеличиваются. При ошибке или истечении таймера раунда уровень снижается на один, но игра продолжается. Общий таймер — отдельно.</p>
+ </details>
+</main>
+<div class="overlay" id="end">
+ <div class="dialog"><h2>Время вышло!</h2><p>Твоя тренировка завершена.</p><h2 id="finalScore">0 ★</h2><p id="finalLevel"></p><div class="dialog-actions"><button class="btn primary" id="again">Играть ещё</button></div></div>
+</div>
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ const shapes={
+ line:[[0,0],[1,0],[2,0],[3,0],[4,0]],
+ square:[[0,0],[0,1],[1,0],[1,1]],
+ rectangle:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
+ L:[[0,0],[1,0],[2,0],[3,0],[3,1],[3,2]],
+ T:[[0,0],[0,1],[0,2],[0,3],[1,1],[2,1]],
+ cross:[[0,1],[1,0],[1,1],[1,2],[2,1]],
+ plus:[[0,2],[1,2],[2,0],[2,1],[2,2],[2,3],[2,4],[3,2],[4,2]],
+ diagonal:[[0,0],[1,1],[2,2],[3,3],[4,4]],
+ zigzag:[[0,0],[0,1],[1,1],[1,2],[2,2],[2,3],[3,3]],
+ stairs:[[0,0],[1,0],[1,1],[2,1],[2,2],[3,2],[3,3]],
+ U:[[0,0],[1,0],[2,0],[2,1],[2,2],[1,2],[0,2]],
+ H:[[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]],
+ arrow:[[0,2],[1,1],[1,2],[1,3],[2,2],[3,2],[4,2]],
+ diamond:[[0,2],[1,1],[1,3],[2,0],[2,2],[2,4],[3,1],[3,3],[4,2]],
+ snake:[[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2],[3,0]],
+ spiral:[[0,0],[0,1],[0,2],[0,3],[1,0],[1,3],[2,0],[2,2],[2,3],[3,0],[3,1],[3,2],[3,3]],
+ fork:[[0,0],[0,2],[1,0],[1,1],[1,2],[2,1],[3,1]],
+ tree:[[0,2],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2],[2,3],[2,4],[3,2],[4,2]],
+ wave:[[0,0],[0,1],[1,1],[1,2],[2,2],[2,3],[3,3],[3,4]]
+ };
+ const names=Object.keys(shapes);
+ let rows=8,cols=8,whole=300,left=300,level=1,score=0,best=0,pattern=[],picked=new Set(),cells=[];
+ let phase='idle',paused=false,soundOn=false,audio=null,showLeft=0,answerLeft=0,transitionLeft=0,loop=null;
+ try{best=Number(localStorage.getItem('memoryBestScore')||0)||0}catch(e){}
+ $('best').textContent=best;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||a));
+ const say=(t,error=false)=>{$('message').textContent=t;$('message').className='status'+(error?' error':'')};
+ function beep(f=620,d=.06){if(!soundOn)return;try{audio||=new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;g.gain.value=.03;o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+ function clock(v,max,label){$('roundTime').textContent=v==null?'—':v.toFixed(1)+'s';$('clockLabel').textContent=label;$('clock').style.setProperty('--arc',(max?Math.max(0,v/max)*100:0)+'%')}
+ function drawTotal(){$('totalTime').textContent=fmt(left);$('progress').style.width=(left/whole*100)+'%'}
+ function makeGrid(){
+  const el=$('grid');el.innerHTML='';cells=[];
+  el.style.gridTemplateColumns='repeat('+cols+',minmax(0,1fr))';el.style.gridTemplateRows='repeat('+rows+',minmax(0,1fr))';
+  for(let i=0;i<rows*cols;i++){const b=document.createElement('button');b.type='button';b.className='cell';b.setAttribute('aria-label','Клетка '+(Math.floor(i/cols)+1)+', '+(i%cols+1));
+   b.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();tap(i)});
+   b.addEventListener('click',e=>{if(e.detail===0)tap(i)});
+   el.appendChild(b);cells.push(b)}
+ }
+ function randomCluster(n){
+  let a=[Math.floor(Math.random()*rows*cols)];
+  while(a.length<Math.min(n,rows*cols)){
+   let edges=[];
+   for(const v of a){let y=Math.floor(v/cols),x=v%cols;
+    for(const [dy,dx] of [[-1,0],[1,0],[0,-1],[0,1]]){let yy=y+dy,xx=x+dx,k=yy*cols+xx;if(yy>=0&&yy<rows&&xx>=0&&xx<cols&&!a.includes(k)&&!edges.includes(k))edges.push(k)}
+   }
+   if(!edges.length)break;a.push(edges[Math.floor(Math.random()*edges.length)])
+  }return a
+ }
+ function place(coords){
+  let minY=Math.min(...coords.map(p=>p[0])),maxY=Math.max(...coords.map(p=>p[0])),minX=Math.min(...coords.map(p=>p[1])),maxX=Math.max(...coords.map(p=>p[1]));
+  let h=maxY-minY+1,w=maxX-minX+1;if(h>rows||w>cols)return null;
+  let sy=Math.floor(Math.random()*(rows-h+1)),sx=Math.floor(Math.random()*(cols-w+1));
+  return coords.map(([y,x])=>(y-minY+sy)*cols+x-minX+sx)
+ }
+ function makePattern(){
+  let mode=$('shapeMode').value,type=mode;
+  if(mode==='mix')type=names[Math.floor(Math.random()*names.length)];
+  if(mode==='random')return randomCluster(Math.min(rows*cols,4+Math.floor((level-1)/2)));
+  if(mode==='zigzag')type=Math.random()<.5?'zigzag':'stairs';
+  if(mode==='arrow')type=Math.random()<.5?'arrow':'diamond';
+  if(mode==='square')type=Math.random()<.5?'square':'rectangle';
+  let base=shapes[type]||shapes.L,mirror=Math.random()<.5,coords=base.map(([y,x])=>[y,mirror?-x:x]);
+  for(let r=0,n=Math.floor(Math.random()*4);r<n;r++)coords=coords.map(([y,x])=>[x,-y]);
+  let result=place(coords)||randomCluster(base.length);
+  for(let n=0;n<Math.min(Math.floor((level-1)/2),12,rows*cols-result.length);n++){
+   let edges=[];for(const v of result){let y=Math.floor(v/cols),x=v%cols;
+    for(const [dy,dx] of [[-1,0],[1,0],[0,-1],[0,1]]){let yy=y+dy,xx=x+dx,k=yy*cols+xx;if(yy>=0&&yy<rows&&xx>=0&&xx<cols&&!result.includes(k)&&!edges.includes(k))edges.push(k)}
+   }if(!edges.length)break;result.push(edges[Math.floor(Math.random()*edges.length)])
+  }return result
+ }
+ function lock(disabled){cells.forEach(c=>c.disabled=disabled)}
+ function beginRound(){
+  if(paused||!['playing','between','answer'].includes(phase))return;
+  phase='show';picked.clear();cells.forEach(c=>c.className='cell');
+  pattern=makePattern();$('count').textContent=pattern.length;pattern.forEach(i=>cells[i].classList.add('active'));lock(true);
+  showLeft=Math.max(.55,clamp($('showSeconds').value,1,5)-Math.floor((level-1)/3)*.16);
+  clock(showLeft,showLeft,'запомни');say('Запомни фигуру из '+pattern.length+' клеток • уровень '+level);
+ }
+ function tap(i){
+  if(phase!=='answer'||paused||picked.has(i))return;
+  picked.add(i);
+  if(!pattern.includes(i)){cells[i].classList.add('wrong');beep(160,.1);loseLevel('wrong');return}
+  cells[i].classList.add('correct');beep(760,.045);
+  if(picked.size===pattern.length){
+   phase='between';lock(true);level++;$('level').textContent=level;
+   let gain=(level-1)+Math.max(0,pattern.length-3);score+=gain;$('score').textContent=score;
+   if(score>best){best=score;$('best').textContent=best;try{localStorage.setItem('memoryBestScore',best)}catch(e){}}
+   transitionLeft=.45;clock(null,1,'верно');say('Верно! +'+gain+' очков. Следующий уровень сложнее.');beep(920,.08)
+  }
+ }
+ function loseLevel(reason){
+  if(phase!=='answer')return;
+  phase='between';lock(true);let old=level;level=Math.max(1,level-1);$('level').textContent=level;
+  pattern.forEach(i=>{if(!picked.has(i))cells[i].classList.add('active')});
+  transitionLeft=.55;clock(null,1,'−1 уровень');
+  say((reason==='timeout'?'Время раунда вышло. ':'Ошибка! ')+'Уровень '+old+' → '+level. Игра продолжается.',true)
+ }
+ function endGame(){
+  phase='ended';clearInterval(loop);lock(true);$('pause').disabled=true;
+  $('finalScore').textContent=score+' ★';$('finalLevel').textContent='Достигнутый уровень: '+level;
+  $('end').style.display='grid';say('Время игры вышло.')
+ }
+ function tick(){
+  if(paused||phase==='idle'||phase==='ended')return;
+  left=Math.max(0,left-.1);drawTotal();
+  if(left<=0){endGame();return}
+  if(phase==='show'){
+   showLeft=Math.max(0,showLeft-.1);clock(showLeft,Math.max(.01,clamp($('showSeconds').value,1,5)),'запомни');
+   if(showLeft<=0){cells.forEach(c=>c.classList.remove('active'));phase='answer';lock(false);answerLeft=clamp($('answerSeconds').value,5,10);clock(answerLeft,answerLeft,'ответ');say('Теперь повтори фигуру. Ошибка понизит уровень на один.')}
+  }else if(phase==='answer'){
+   answerLeft=Math.max(0,answerLeft-.1);clock(answerLeft,clamp($('answerSeconds').value,5,10),'ответ');
+   if(answerLeft<=0)loseLevel('timeout')
+  }else if(phase==='between'){
+   transitionLeft=Math.max(0,transitionLeft-.1);
+   if(transitionLeft<=0)beginRound()
+  }
+ }
+ function start(){
+  rows=clamp($('rows').value,3,12);cols=clamp($('cols').value,3,12);$('rows').value=rows;$('cols').value=cols;
+  whole=clamp($('minutes').value,1,30)*60;left=whole;
+  level=1;score=0;paused=false;phase='playing';$('level').textContent=level;$('score').textContent='0';
+  $('end').style.display='none';$('pause').disabled=false;$('pause').textContent='Пауза';$('start').textContent='Заново';
+  makeGrid();drawTotal();beginRound();clearInterval(loop);loop=setInterval(tick,100)
+ }
+ function pauseToggle(){
+  if(phase==='idle'||phase==='ended')return;
+  paused=!paused;$('pause').textContent=paused?'Продолжить':'Пауза';
+  if(paused){say('Пауза — таймеры остановлены.')}else{say(phase==='answer'?'Продолжай повторять фигуру.':'Игра продолжается.')}
+ }
+ $('start').addEventListener('click',start);$('again').addEventListener('click',start);$('pause').addEventListener('click',pauseToggle);
+ $('sound').addEventListener('click',()=>{soundOn=!soundOn;$('sound').textContent='Звук: '+(soundOn?'вкл.':'выкл.');beep()});
+ makeGrid();drawTotal();clock(null,1,'раунд');
+})();
+</script>
+</body>
+</html>
